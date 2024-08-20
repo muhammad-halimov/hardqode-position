@@ -49,10 +49,13 @@ class Lesson(models.Model):
 
 class UserCourse(models.Model):
     """Доступ к курсам."""
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='user_courses')
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='user_courses')
-    enrolled_at = models.DateTimeField(auto_now_add=True)
-    is_active = models.BooleanField(default=True)
+    user = models.ForeignKey(
+        CustomUser, on_delete=models.CASCADE,
+        verbose_name='Пользователь', related_name='user_courses'
+    )
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, verbose_name='Курс', related_name='user_courses')
+    enrolled_at = models.DateTimeField(verbose_name='Зарегистрирован:', auto_now_add=True)
+    is_active = models.BooleanField(verbose_name='Активный ?', default=True)
 
     created = models.DateTimeField(verbose_name='Создано', auto_now_add=True)
     updated = models.DateTimeField(verbose_name='Обновлено', auto_now=True)
