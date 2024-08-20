@@ -1,7 +1,6 @@
 from django.contrib.auth import get_user_model
 from djoser.serializers import UserSerializer
 from rest_framework import serializers
-
 from users.models import Subscription
 
 User = get_user_model()
@@ -28,5 +27,8 @@ class SubscriptionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Subscription
         fields = (
-            # TODO
+            'user',
+            'course',
+            'created_at',
+            'expired_at'
         )

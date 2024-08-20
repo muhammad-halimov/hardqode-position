@@ -58,6 +58,8 @@ class CourseViewSet(viewsets.ModelViewSet):
 
     queryset = Course.objects.all()
     permission_classes = (ReadOnlyOrIsAdmin,)
+    serializer_class = CourseSerializer
+    http_method_names = ["get", "post", "head", "options"]
 
     def get_serializer_class(self):
         if self.action in ['list', 'retrieve']:
@@ -71,10 +73,41 @@ class CourseViewSet(viewsets.ModelViewSet):
     )
     def pay(self, request, pk):
         """Покупка доступа к курсу (подписка на курс)."""
+        if request.user.is_staff:
+            course = self.get_object()
+            user = request.user
+            balance = Balance.objects.get(user=user)
 
-        # TODO
+            # Проверяем, бонусы у пользователя
+            if balance.balance < course.price:
+                return Response(
+                    {'error': 'Недостаточно бонусов для оплаты курса.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
-        return Response(
-            data=data,
-            status=status.HTTP_201_CREATED
-        )
+            # Транзакция
+            with transaction.atomic():
+                # Списываем бонусы
+                balance.balance -= course.price
+                balance.save()
+
+                # Запись о подписке
+                user_course = UserCourse.objects.create(
+                    user=user,
+                    course=course,
+                    is_active=True
+                )
+
+                serializer = UserCourseSerializer(user_course)
+
+            return Response(
+                data=serializer.data,
+                status=status.HTTP_201_CREATED
+            )
+
+
+class SubscriptionViewSet(viewsets.ModelViewSet):
+    queryset = Subscription.objects.all()
+    permission_classes = (ReadOnlyOrIsAdmin,)
+    serializer_class = SubscriptionSerializer
+    http_method_names = ["get", "head", "options"]

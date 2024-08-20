@@ -2,6 +2,8 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.core.validators import MinValueValidator
 from django.utils.translation import gettext_lazy as _
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 
 def validate_non_negative(value):
@@ -66,12 +68,43 @@ class Balance(models.Model):
         return self.user.username
 
 
+@receiver(post_save, sender=CustomUser)
+def create_user_balance(sender, instance, created, **kwargs):
+    if created:
+        Balance.objects.create(user=instance)
+
+
 class Subscription(models.Model):
     """Модель подписки пользователя на курс."""
+    user = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name='subscriptions',
+        verbose_name='Пользователь',
+        null=True
+    )
+    course = models.ForeignKey(
+        "courses.Course",
+        on_delete=models.CASCADE,
+        related_name='subscriptions',
+        verbose_name='Курс',
+        null=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата подписки')
+    expired_at = models.DateTimeField(null=True, blank=True, verbose_name='Дата окончания подписки')
 
-    # TODO
+    created = models.DateTimeField(verbose_name='Создано', auto_now_add=True)
+    updated = models.DateTimeField(verbose_name='Обновлено', auto_now=True)
+
+    DisplayFields = ["id", "user", "course", "created_at", "expired_at", "created", "updated"]
+    SearchableFields = DisplayFields
+    FilterFields = ["created_at", "expired_at", "created", "updated"]
 
     class Meta:
         verbose_name = 'Подписка'
         verbose_name_plural = 'Подписки'
         ordering = ('-id',)
+        unique_together = ('user', 'course')
+
+    def __str__(self):
+        return f"{self.user.email} - {self.course.title}"
